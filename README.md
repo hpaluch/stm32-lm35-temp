@@ -8,7 +8,18 @@ where I will:
   port
 
 Status:
-- Just blink green LED LD1 at 2s rate (toggle at 1s rate)
+- send trivial message (counter) to UART like:
+  ```
+  #1
+  #2
+  ...
+  ```
+  every second
+- the STM32F7 USART3 is directly connected to ST-LINK Virtual Com port
+  (no extra hardware init). In my case it has
+  name `STMicroelectronics STLink Virtual COM Port`. Use 115200 Baud, 8-bit,
+  no parity, no flow control
+- blinks green LED LD1 at 2s rate (toggle at 1s rate)
 - Red LED LD3 on in case of fatal error
 
 This project will be companion
