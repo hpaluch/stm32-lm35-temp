@@ -9,6 +9,12 @@ where I will:
 
 Status:
 - Does not work yet (setting up CubeMX generator so far)
+- STM32SWT does not build project saying:
+
+```
+Orphaned configuration. No base extension cfg exists for
+com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1868357600
+```
 
 This project will be companion
 for [Measure temperature with PIC16F1579 and LM35 sensor](https://github.com/hpaluch/PIC16F1579-LM35-Temp). I like to see how these very different MUs an their tools
