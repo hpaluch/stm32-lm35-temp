@@ -2,4 +2,6 @@
 *~
 *.swp
 
+.settings/
 Debug/
+*.launch
