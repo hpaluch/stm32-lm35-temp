@@ -140,8 +140,8 @@ int main(void)
 	  uhADCxConvertedValue = HAL_ADC_GetValue(&hadc1);
 	  // ADC Value is 12 bit (4096 values) 0=0V, 4095=3.3V (Vdd) on PA0/AN0
 	  gAdcMiliV = uhADCxConvertedValue * APP_ADC_VREF_PLUS_FP / (APP_ADC_RANGE-1);
-	  printf("L%d: #%u ADC U=%f [mV] raw=%u (0x%x)\r\n",
-			  __LINE__, gCounter, gAdcMiliV, uhADCxConvertedValue, uhADCxConvertedValue);
+	  printf("L%d: #%u ADC T=%.2f [^C] U=%.2f [mV] raw=%u (0x%x)\r\n",
+			  __LINE__, gCounter, gAdcMiliV/10.0, gAdcMiliV, uhADCxConvertedValue, uhADCxConvertedValue);
 	  HAL_Delay(1000); // pause for 1s
 	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
   }
