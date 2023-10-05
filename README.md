@@ -23,6 +23,7 @@ Status:
   in Degrees of Celsius `U` is voltage in `mV`
 - **Problem!: ADC Voltage has significant jitter while DMM shows
   constant value of 260 mV**
+  - FIXME: I should use AGND instead of GND
 - the STM32F7 USART3 is directly connected to ST-LINK Virtual Com port
   (no extra hardware init). In my case it has
   name `STMicroelectronics STLink Virtual COM Port`. Use 115200 Baud, 8-bit,
