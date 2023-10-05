@@ -6,3 +6,4 @@
 # anomaly in using CRLF vs LF
 Core/Src/syscalls.c text eol=lf
 Core/Src/sysmem.c text eol=lf
+*.jpg filter=lfs diff=lfs merge=lfs -text

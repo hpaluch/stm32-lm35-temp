@@ -1,6 +1,6 @@
 # STM32 with LM35 Temperature sensor
 
-Here is planned simple project for [STM NUCLEO-F767ZI][STM NUCLEO-F767ZI] 
+Here is simple project for [STM NUCLEO-F767ZI][STM NUCLEO-F767ZI] 
 where I will:
 * query [LM35][LM35] Sensor for temperature every second using ADC (LM35 outputs
   temperature in Celsius times 10 - for example 260 mV = 26.0 C
@@ -29,6 +29,8 @@ Status:
   no parity, no flow control
 - blinks green LED LD1 at 2s rate (toggle at 1s rate)
 - Red LED LD3 on in case of fatal error
+
+![Nucleo with LM35](assets/nucelo-lm35.jpg)
 
 This project is companion
 for [Measure temperature with PIC16F1579 and LM35 sensor](https://github.com/hpaluch/PIC16F1579-LM35-Temp).
