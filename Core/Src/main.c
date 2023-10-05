@@ -25,6 +25,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h> // printf(3)
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,13 +40,21 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#define APP_VERSION 100 // 123 = 1.23
+#define APP_ADC_VREF_PLUS_FP 3300.0 // 3300 mV for 4095 value from ADC
+#define APP_ADC_RANGE 4096
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+// from: c:\Ac6\STM32Cube_FW_F7_V1.17.0\Projects\STM32F767ZI-Nucleo\Examples\ADC\ADC_RegularConversion_Polling\Src\main.c
+/* Variable used to get converted value */
+__IO uint16_t uhADCxConvertedValue = 0;
 unsigned int gCounter=0; // g as "global"
+bool gUartStarted=false; // if Error_Handler() can use USART3 to report error
+// remember that STM32F7 has hardware FPU! - so no reason to stick with integers!
+double gAdcMiliV=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -98,7 +107,8 @@ int main(void)
   MX_USART3_UART_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-
+  gUartStarted=true; // tell Error_Handler() that it can print fatal error to USART3
+  printf("L%d: App v%d.%02d\r\n", __LINE__, APP_VERSION/100, APP_VERSION%100);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -109,7 +119,29 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  gCounter++;
-	  printf("#%u\r\n",gCounter);
+	  // read ADC1, on PA0/AN0
+	  // from: c:\Ac6\STM32Cube_FW_F7_V1.17.0\Projects\STM32F767ZI-Nucleo\Examples\ADC\ADC_RegularConversion_Polling\Src\main.c
+	  /* Start the conversion process */
+	  if (HAL_ADC_Start(&hadc1) != HAL_OK)
+	  {
+	    /* Start Conversation Error */
+		printf("ERROR: L%d: HAL_ADC_Start() failed.\r\n", __LINE__);
+		Error_Handler();
+	  }
+	  /*  For simplicity reasons, this example is just waiting till the end of the
+	      conversion, but application may perform other tasks while conversion
+	      operation is ongoing. */
+	  if (HAL_ADC_PollForConversion(&hadc1, 10) != HAL_OK){
+	    /* End Of Conversion flag not set on time */
+		printf("ERROR: L%d: HAL_ADC_PollForConversion() failed.\r\n", __LINE__);
+	    Error_Handler();
+	  }
+	  /* ADC conversion completed */
+	  uhADCxConvertedValue = HAL_ADC_GetValue(&hadc1);
+	  // ADC Value is 12 bit (4096 values) 0=0V, 4095=3.3V (Vdd) on PA0/AN0
+	  gAdcMiliV = uhADCxConvertedValue * APP_ADC_VREF_PLUS_FP / (APP_ADC_RANGE-1);
+	  printf("L%d: #%u ADC U=%f [mV] raw=%u (0x%x)\r\n",
+			  __LINE__, gCounter, gAdcMiliV, uhADCxConvertedValue, uhADCxConvertedValue);
 	  HAL_Delay(1000); // pause for 1s
 	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
   }
@@ -200,6 +232,9 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   // RED LED LD1 On forever ...
   HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
+  if (gUartStarted){
+	  printf("ERROR: L%d: SYSTEM HALTED due fatal error!\r\n", __LINE__);
+  }
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)
