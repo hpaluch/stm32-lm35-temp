@@ -58,7 +58,13 @@ Wiring:
 | --- | --- |
 | CN8 PIN11 GND | PIN3 GND |
 | CN8 PIN9 +5V  | PIN1 +Vs |
-| CN10 PIN29 PA0 | PIN2 Vout |
+| CN10 PIN29 PA0 | PIN2 Vout through 470 Ohm resistor |
+
+Above 470 Ohm resistor recommend for protection of both
+LM35 and STM32F7.
+
+Also recommended 100 nF capacitor as close as possible
+to PIN1 and PIN3 of LM35.
 
 Required Software:
 * [STM32CubeMX][STM32CubeMX] tested version 6.9.2 `en.stm32cubemx-win-v6-9-2.zip`
