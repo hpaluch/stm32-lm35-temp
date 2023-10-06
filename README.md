@@ -7,25 +7,32 @@ where I will:
 * print result on USART 3 which is directly connected to ST-LINK Virtual COM
   port
 
+Problem:
+- very significant jitter on ADC - even input connected
+  to ground varies from minimum 0 to 78 or so which is error
+  `100*78/4096 = 1.9%` (!)
+- probably hit by errata:
+  - https://www.st.com/resource/en/application_note/an4073-how-to-improve-adc-accuracy-when-using-stm32f2xx-and-stm32f4xx-microcontrollers-stmicroelectronics.pdf
+  -  https://www.st.com/resource/en/errata_sheet/es0334-stm32f76xxx-and-stm32f77xxx-device-errata-stmicroelectronics.pdf
+- will do more experiments (using median instead of average?)
+
 Status:
-- reads ADC from PA0/IN0 (CN10 PIN29) and dumps value in mV and raw value
-- send trivial message (counter) to UART like:
+- finished but problem with high jitter (see above)
+- applied software workaround - averaging 32 samples.
+- output on UART:
   ```
-  L111: App v1.00
-  L144: #1 ADC T=23.21 [^C] U=232.09 [mV] raw=288 (0x120)
-  L144: #2 ADC T=25.22 [^C] U=252.23 [mV] raw=313 (0x139)
-  L144: #3 ADC T=28.93 [^C] U=289.30 [mV] raw=359 (0x167)
-  L144: #4 ADC T=23.29 [^C] U=232.89 [mV] raw=289 (0x121)
+  L170: App v1.01
+  L188: ADC Stats: last=278 avg=287 min=266 max=328 range=62 n=32
+  L193: #1 ADC AVG(32) T=23.13 [^C] U=231.28 [mV] raw=287 (0x11f)
+  L188: ADC Stats: last=274 avg=289 min=264 max=308 range=44 n=32
+  L193: #2 ADC AVG(32) T=23.29 [^C] U=232.89 [mV] raw=289 (0x121)
   ...
   ```
   every second (where `Lx` is Line in main.c source, `#x`
   is simple measurement counter, `T` is temperature
   in Degrees of Celsius `U` is voltage in `mV`
-- **Problem!: ADC Voltage has significant jitter while DMM shows
-  constant value of 260 mV**
-  - FIXME: I should use AGND instead of GND
 - the STM32F7 USART3 is directly connected to ST-LINK Virtual Com port
-  (no extra hardware init). In my case it has
+  (no extra hardware needed). In my case it has
   name `STMicroelectronics STLink Virtual COM Port`. Use 115200 Baud, 8-bit,
   no parity, no flow control
 - blinks green LED LD1 at 2s rate (toggle at 1s rate)
@@ -76,7 +83,7 @@ If your IDE will refuse to build project and reports something like:
 > Orphaned configuration. No base extension cfg exists for
 > com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1868357600
 
-It measn that you are using wrong IDE - `SW4STM32` while
+It means that you are using wrong IDE - `SW4STM32` while
 this project is for more recent `STM32CubeIDE`. To fix this
 error download and install STM32CubeIDE
 from https://www.st.com/en/development-tools/stm32cubeide.html

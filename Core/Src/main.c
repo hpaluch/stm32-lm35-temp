@@ -30,17 +30,25 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+typedef uint16_t t_adc_sample;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+struct s_adc_stats {
+	t_adc_sample minVal;
+	t_adc_sample maxVal;
+	t_adc_sample lastVal;
+	t_adc_sample avgVal;
+	int n; // number of processed samples
+};
+#define APP_ADC_STATS_INIT {0,0,0,0,0}
+#define N_AVG_SAMPLES 16 // maximum for uint16_t sum
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define APP_VERSION 100 // 123 = 1.23
+#define APP_VERSION 101 // 123 = 1.23
 #define APP_ADC_VREF_PLUS_FP 3300.0 // 3300 mV for 4095 value from ADC
 #define APP_ADC_RANGE 4096
 /* USER CODE END PM */
@@ -48,13 +56,11 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-// from: c:\Ac6\STM32Cube_FW_F7_V1.17.0\Projects\STM32F767ZI-Nucleo\Examples\ADC\ADC_RegularConversion_Polling\Src\main.c
-/* Variable used to get converted value */
-__IO uint16_t uhADCxConvertedValue = 0;
 unsigned int gCounter=0; // g as "global"
 bool gUartStarted=false; // if Error_Handler() can use USART3 to report error
 // remember that STM32F7 has hardware FPU! - so no reason to stick with integers!
 double gAdcMiliV=0;
+struct s_adc_stats gAdcStats = APP_ADC_STATS_INIT;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -73,6 +79,59 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+// returns single 12-bit sample (0 to 4095: equivalent of 0V to 3.3V) from ADC1 PA0/IN0 (CN10 PIN29)
+t_adc_sample GetSingleAdcSample(void)
+{
+	  /* Start the conversion process */
+	  if (HAL_ADC_Start(&hadc1) != HAL_OK)
+	  {
+	    /* Start Conversation Error */
+		printf("ERROR: L%d: HAL_ADC_Start() failed.\r\n", __LINE__);
+		Error_Handler();
+	  }
+	  /*  For simplicity reasons, this example is just waiting till the end of the
+	      conversion, but application may perform other tasks while conversion
+	      operation is ongoing. */
+	  if (HAL_ADC_PollForConversion(&hadc1, 10) != HAL_OK){
+	    /* End Of Conversion flag not set on time */
+		printf("ERROR: L%d: HAL_ADC_PollForConversion() failed.\r\n", __LINE__);
+	    Error_Handler();
+	  }
+	  /* ADC conversion completed */
+	  return HAL_ADC_GetValue(&hadc1);
+}
+
+// we must average several samples because ADC output is impacted by significant
+// noise from Flash and other circuits:
+// - es0334-stm32f76xxx-and-stm32f77xxx-device-errata-stmicroelectronics.pdf
+// - an4073-how-to-improve-adc-accuracy-when-using-stm32f2xx-and-stm32f4xx-microcontrollers-stmicroelectronics.pdf
+struct s_adc_stats GetAveragedAdcSamples(int n)
+{
+	int i;
+	uint32_t adcSum=0; // must use 32-bit type for n > 16 to avoid overflow!!!
+	struct s_adc_stats s = APP_ADC_STATS_INIT;
+
+	if (n<0 || n>=65535){
+		printf("ERROR: L%d Specified number of samples n=%d out of allowed range!\r\n",
+			__LINE__, n);
+		Error_Handler();
+	}
+	s.n = n;
+	for(i=0;i<n;i++){
+		s.lastVal = GetSingleAdcSample();
+		if (i==0){
+			s.minVal = s.lastVal;
+			s.maxVal = s.lastVal;
+		} else {
+			if (s.minVal > s.lastVal) s.minVal = s.lastVal;
+			if (s.maxVal < s.lastVal) s.maxVal = s.lastVal;
+		}
+		adcSum += s.lastVal;
+	}
+	s.avgVal = adcSum/n;
+	return s;
+}
 
 /* USER CODE END 0 */
 
@@ -120,28 +179,18 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  gCounter++;
 	  // read ADC1, on PA0/AN0
-	  // from: c:\Ac6\STM32Cube_FW_F7_V1.17.0\Projects\STM32F767ZI-Nucleo\Examples\ADC\ADC_RegularConversion_Polling\Src\main.c
-	  /* Start the conversion process */
-	  if (HAL_ADC_Start(&hadc1) != HAL_OK)
-	  {
-	    /* Start Conversation Error */
-		printf("ERROR: L%d: HAL_ADC_Start() failed.\r\n", __LINE__);
-		Error_Handler();
-	  }
-	  /*  For simplicity reasons, this example is just waiting till the end of the
-	      conversion, but application may perform other tasks while conversion
-	      operation is ongoing. */
-	  if (HAL_ADC_PollForConversion(&hadc1, 10) != HAL_OK){
-	    /* End Of Conversion flag not set on time */
-		printf("ERROR: L%d: HAL_ADC_PollForConversion() failed.\r\n", __LINE__);
-	    Error_Handler();
-	  }
-	  /* ADC conversion completed */
-	  uhADCxConvertedValue = HAL_ADC_GetValue(&hadc1);
+	  // we must average data to workaround ADC noise errata:
+	  // see: es0334-stm32f76xxx-and-stm32f77xxx-device-errata-stmicroelectronics.pdf
+	  // - section 2.2.1 Internal noise impacting the ADC accuracy
+	  // and whole: an4073-how-to-improve-adc-accuracy-when-using-stm32f2xx-and-stm32f4xx-microcontrollers-stmicroelectronics.pdf
+	  gAdcStats = GetAveragedAdcSamples(32);
+	  printf("L%d: ADC Stats: last=%u avg=%u min=%u max=%u range=%d n=%d\r\n",
+			  __LINE__,gAdcStats.lastVal, gAdcStats.avgVal, gAdcStats.minVal, gAdcStats.maxVal,
+			  (int)gAdcStats.maxVal-(int)gAdcStats.minVal,gAdcStats.n);
 	  // ADC Value is 12 bit (4096 values) 0=0V, 4095=3.3V (Vdd) on PA0/AN0
-	  gAdcMiliV = uhADCxConvertedValue * APP_ADC_VREF_PLUS_FP / (APP_ADC_RANGE-1);
-	  printf("L%d: #%u ADC T=%.2f [^C] U=%.2f [mV] raw=%u (0x%x)\r\n",
-			  __LINE__, gCounter, gAdcMiliV/10.0, gAdcMiliV, uhADCxConvertedValue, uhADCxConvertedValue);
+	  gAdcMiliV = gAdcStats.avgVal * APP_ADC_VREF_PLUS_FP / (APP_ADC_RANGE-1);
+	  printf("L%d: #%u ADC AVG(%d) T=%.2f [^C] U=%.2f [mV] raw=%u (0x%x)\r\n",
+			  __LINE__, gCounter, gAdcStats.n, gAdcMiliV/10.0, gAdcMiliV, gAdcStats.avgVal, gAdcStats.avgVal);
 	  HAL_Delay(1000); // pause for 1s
 	  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
   }
@@ -230,7 +279,7 @@ PUTCHAR_PROTOTYPE
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  // RED LED LD1 On forever ...
+  // red LED LD3 On forever ...
   HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
   if (gUartStarted){
 	  printf("ERROR: L%d: SYSTEM HALTED due fatal error!\r\n", __LINE__);
