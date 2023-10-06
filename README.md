@@ -7,25 +7,34 @@ where I will:
 * print result on USART 3 which is directly connected to ST-LINK Virtual COM
   port
 
-Problem:
-- very significant jitter on ADC - even input connected
-  to ground varies from minimum 0 to 78 or so which is error
-  `100*78/4096 = 1.9%` (!)
-- probably hit by errata:
+Problem - solved:
+- had very significant jitter on ADC - even input connected
+  to ground varies from minimum 0 to 78 or so which is error `100*78/4096 = 1.9%` (!)
+- jitter reduced by using rather:
+  - AGND CN10 PIN3 (Analog ground) instead of GND
+  - ADC12_IN9 CN10 PIN 7 - ADC1 input IN9 - these pins are reserved for ADC
+  - jitter reduced from 78 to 8 (0.2% instead of 1.9%)
+- maybe (?) hit by errata:
   - https://www.st.com/resource/en/application_note/an4073-how-to-improve-adc-accuracy-when-using-stm32f2xx-and-stm32f4xx-microcontrollers-stmicroelectronics.pdf
   -  https://www.st.com/resource/en/errata_sheet/es0334-stm32f76xxx-and-stm32f77xxx-device-errata-stmicroelectronics.pdf
-- will do more experiments (using median instead of average?)
 
 Status:
-- finished but problem with high jitter (see above)
+- usable
+- SOLVED: reduced ADC jitter by using AGND and IN9 (instead of GND and IN0) to acceptable levels
+  - these pins are recommended for Analog input
 - applied software workaround - averaging 32 samples.
+- ADC stability now comparable to other MCUs
 - output on UART:
   ```
-  L170: App v1.01
-  L188: ADC Stats: last=278 avg=287 min=266 max=328 range=62 n=32
-  L193: #1 ADC AVG(32) T=23.13 [^C] U=231.28 [mV] raw=287 (0x11f)
-  L188: ADC Stats: last=274 avg=289 min=264 max=308 range=44 n=32
-  L193: #2 ADC AVG(32) T=23.29 [^C] U=232.89 [mV] raw=289 (0x121)
+  L170: App v1.02
+  L188: ADC Stats: last=307 avg=308 min=305 max=314 range=9 n=32
+  L193: #1 ADC AVG(32) T=24.82 [^C] U=248.21 [mV] raw=308 (0x134)
+  L188: ADC Stats: last=311 avg=309 min=304 max=314 range=10 n=32
+  L193: #2 ADC AVG(32) T=24.90 [^C] U=249.01 [mV] raw=309 (0x135)
+  L188: ADC Stats: last=307 avg=309 min=302 max=316 range=14 n=32
+  L193: #3 ADC AVG(32) T=24.90 [^C] U=249.01 [mV] raw=309 (0x135)
+  L188: ADC Stats: last=313 avg=309 min=304 max=316 range=12 n=32
+  L193: #4 ADC AVG(32) T=24.90 [^C] U=249.01 [mV] raw=309 (0x135)
   ...
   ```
   every second (where `Lx` is Line in main.c source, `#x`
@@ -56,9 +65,9 @@ Wiring:
 
 | Nucleo Board | LM 35 |
 | --- | --- |
-| CN8 PIN11 GND | PIN3 GND |
+| CN10 PIN3 AGND (Analog Ground) | PIN3 GND |
 | CN8 PIN9 +5V  | PIN1 +Vs |
-| CN10 PIN29 PA0 | PIN2 Vout through 470 Ohm resistor |
+| CN10 PIN7 PB1 IN9 | PIN2 Vout through 470 Ohm resistor |
 
 Above 470 Ohm resistor recommend for protection of both
 LM35 and STM32F7.

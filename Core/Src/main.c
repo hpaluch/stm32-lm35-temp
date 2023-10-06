@@ -43,12 +43,11 @@ struct s_adc_stats {
 	int n; // number of processed samples
 };
 #define APP_ADC_STATS_INIT {0,0,0,0,0}
-#define N_AVG_SAMPLES 16 // maximum for uint16_t sum
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define APP_VERSION 101 // 123 = 1.23
+#define APP_VERSION 102 // 123 = 1.23
 #define APP_ADC_VREF_PLUS_FP 3300.0 // 3300 mV for 4095 value from ADC
 #define APP_ADC_RANGE 4096
 /* USER CODE END PM */
@@ -58,7 +57,7 @@ struct s_adc_stats {
 /* USER CODE BEGIN PV */
 unsigned int gCounter=0; // g as "global"
 bool gUartStarted=false; // if Error_Handler() can use USART3 to report error
-// remember that STM32F7 has hardware FPU! - so no reason to stick with integers!
+// remember that STM32F7 has hardware FPU! - so no reason to use only integers!
 double gAdcMiliV=0;
 struct s_adc_stats gAdcStats = APP_ADC_STATS_INIT;
 /* USER CODE END PV */
@@ -80,7 +79,7 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-// returns single 12-bit sample (0 to 4095: equivalent of 0V to 3.3V) from ADC1 PA0/IN0 (CN10 PIN29)
+// returns single 12-bit sample (0 to 4095: equivalent of 0V to 3.3V) from ADC1 PB1/IN9 (CN10 PIN7)
 t_adc_sample GetSingleAdcSample(void)
 {
 	  /* Start the conversion process */
@@ -187,7 +186,7 @@ int main(void)
 	  printf("L%d: ADC Stats: last=%u avg=%u min=%u max=%u range=%d n=%d\r\n",
 			  __LINE__,gAdcStats.lastVal, gAdcStats.avgVal, gAdcStats.minVal, gAdcStats.maxVal,
 			  (int)gAdcStats.maxVal-(int)gAdcStats.minVal,gAdcStats.n);
-	  // ADC Value is 12 bit (4096 values) 0=0V, 4095=3.3V (Vdd) on PA0/AN0
+	  // ADC Value is 12 bit (4096 values) 0=0V, 4095=3.3V (Vdd) on PB1/IN9
 	  gAdcMiliV = gAdcStats.avgVal * APP_ADC_VREF_PLUS_FP / (APP_ADC_RANGE-1);
 	  printf("L%d: #%u ADC AVG(%d) T=%.2f [^C] U=%.2f [mV] raw=%u (0x%x)\r\n",
 			  __LINE__, gCounter, gAdcStats.n, gAdcMiliV/10.0, gAdcMiliV, gAdcStats.avgVal, gAdcStats.avgVal);
