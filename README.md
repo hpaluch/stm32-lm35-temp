@@ -76,12 +76,12 @@ Also recommended 100 nF capacitor as close as possible
 to PIN1 and PIN3 of LM35.
 
 Required Software:
-* [STM32CubeMX][STM32CubeMX] tested version 6.9.2 `en.stm32cubemx-win-v6-9-2.zip`
-* Under STM32CubeMX you have to install `STM32Cube_FW_F7_V1.17.1`,
-  it should be right under path `c:\Ac6\STM32Cube\Repo` because
-  this project has hardcoded dependencies on it.
 * [STM32CubeIDE-Win](https://www.st.com/en/development-tools/stm32cubeide.html)
   tested version 1.13.2 `en.st-stm32cubeide_1.13.2_18220_20230914_1601_x86_64.exe.zip`
+
+If you plan to change any Hardware or HAL component you should also install:
+* [STM32CubeMX][STM32CubeMX] tested version 6.9.2 `en.stm32cubemx-win-v6-9-2.zip`
+* Under STM32CubeMX you have to install package: `STM32Cube_FW_F7_V1.17.1`,
 
 WARNING! CubeMX generator no longer supports 
 "System Workbench for STM32"! You need to install
@@ -89,7 +89,63 @@ WARNING! CubeMX generator no longer supports
 
 # Build
 
-TODO
+In STM32CubeIDE just click on Hammer icon. At the end of build you should
+see on console messages like:
+
+```
+   text	   data	    bss	    dec	    hex	filename
+  26788	    476	   2144	  29408	   72e0	stm32-lm35-temp.elf
+Finished building: default.size.stdout
+
+09:52:03 Build Finished. 0 errors, 0 warnings. (took 933ms)
+```
+
+# Running
+
+In STM32CubeIDE do this:
+* on toolbar just click on Green Arrow with tooltip `Run stm32-lm35-temp`
+* when finished you should see in Console Window messages like:
+
+```
+ST-LINK SN  : [REDACTED]
+ST-LINK FW  : V2J42M27
+Board       : NUCLEO-F767ZI
+Voltage     : 3.26V
+SWD freq    : 4000 KHz
+Connect mode: Under Reset
+Reset mode  : Hardware reset
+Device ID   : 0x451
+Revision ID : Rev Z
+Device name : STM32F76x/STM32F77x
+Flash size  : 2 MBytes
+Device type : MCU
+Device CPU  : Cortex-M7
+BL Version  : 0x93
+
+Memory Programming ...
+Opening and parsing file: ST-LINK_GDB_server_a01856.srec
+  File          : ST-LINK_GDB_server_a01856.srec
+  Size          : 26.63 KB
+  Address       : 0x08000000
+
+Erasing memory corresponding to segment 0:
+Erasing internal memory sector 0
+Download in Progress:
+
+File download complete
+Time elapsed during download operation: 00:00:00.977
+
+Verifying ...
+Download verified successfully
+
+Shutting down...
+Exit.
+```
+
+Since then the program should be running:
+- green LED LD1 slowly blinking
+- temperature output on UART every second
+
 
 # Troubleshooting
 
