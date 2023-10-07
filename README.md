@@ -1,53 +1,64 @@
 # STM32 with LM35 Temperature sensor
 
-Here is simple project for [STM NUCLEO-F767ZI][STM NUCLEO-F767ZI] 
-where I will:
-* query [LM35][LM35] Sensor for temperature every second using ADC (LM35 outputs
-  temperature in Celsius times 10 - for example 260 mV = 26.0 C
-* print result on USART 3 which is directly connected to ST-LINK Virtual COM
-  port
+Here is simple project for [STM NUCLEO-F767ZI][STM NUCLEO-F767ZI] Development
+board where we use [LM35][LM35] sensor to measure temperature in Degrees of
+Celsius and print it on UART.
 
-Problem - solved:
+![Nucleo with LM35](assets/nucelo-lm35.jpg)
+
+Example UART output:
+
+```
+L170: App v1.02
+L188: ADC Stats: last=307 avg=308 min=305 max=314 range=9 n=32
+L193: #1 ADC AVG(32) T=24.82 [^C] U=248.21 [mV] raw=308 (0x134)
+L188: ADC Stats: last=311 avg=309 min=304 max=314 range=10 n=32
+L193: #2 ADC AVG(32) T=24.90 [^C] U=249.01 [mV] raw=309 (0x135)
+L188: ADC Stats: last=307 avg=309 min=302 max=316 range=14 n=32
+L193: #3 ADC AVG(32) T=24.90 [^C] U=249.01 [mV] raw=309 (0x135)
+L188: ADC Stats: last=313 avg=309 min=304 max=316 range=12 n=32
+L193: #4 ADC AVG(32) T=24.90 [^C] U=249.01 [mV] raw=309 (0x135)
+...
+```
+
+Printed every second where `Lx` is Line in [Core/Src/main.c][Core/Src/main.c]
+source, `#x` is simple measurement counter (increments by 1 on every
+measurement), `T` is temperature in Degrees of Celsius `U` is voltage in `mV`
+
+How it works:
+
+1. [LM35][LM35] sensor converts temperature in Degrees of Celsius to mili-volts times 10,
+   for example:
+   - 10.5 °C is converted to 105 mV
+   - 26.0 °C is converted to 260 mV
+   - LIMITATION: to measure negative temperature there is required negative bias.
+     It is not supported on this project, because it requires higher voltage
+     than available +5V
+2. STM32F7 uses 12-bit ADC1, input IN9 to convert mili-volts to unsigned integer.
+3. ADC range is 0 to 4095 (12-bit) which corresponds to range 0 mV to 3300 mV
+   So we have to transform it.
+4. Also original ADC has high jitter so we measure input 32 times and computer average
+3. Regarding ADC finally we have to convert mili-volts to Celsius by dividing them by 10
+4. Finally we print measured temperature using regular `printf()` function on UART (USART3)
+   output.
+5. Because USART3 is directly connected to Virtual COM port of ST-LINK Programmer/Debugger
+   users can just use Putty or any other terminal program to see USART3 output on PC
+
+Resolved problems:
 - had very significant jitter on ADC - even input connected
   to ground varies from minimum 0 to 78 or so which is error `100*78/4096 = 1.9%` (!)
 - jitter reduced by using rather:
   - AGND CN10 PIN3 (Analog ground) instead of GND
   - ADC12_IN9 CN10 PIN 7 - ADC1 input IN9 - these pins are reserved for ADC
   - jitter reduced from 78 to 8 (0.2% instead of 1.9%)
-- maybe (?) hit by errata:
+- not sure how much of jitter is caused by this errata:
   - https://www.st.com/resource/en/application_note/an4073-how-to-improve-adc-accuracy-when-using-stm32f2xx-and-stm32f4xx-microcontrollers-stmicroelectronics.pdf
   -  https://www.st.com/resource/en/errata_sheet/es0334-stm32f76xxx-and-stm32f77xxx-device-errata-stmicroelectronics.pdf
 
-Status:
-- usable
-- SOLVED: reduced ADC jitter by using AGND and IN9 (instead of GND and IN0) to acceptable levels
-  - these pins are recommended for Analog input
-- applied software workaround - averaging 32 samples.
-- ADC stability now comparable to other MCUs
-- output on UART:
-  ```
-  L170: App v1.02
-  L188: ADC Stats: last=307 avg=308 min=305 max=314 range=9 n=32
-  L193: #1 ADC AVG(32) T=24.82 [^C] U=248.21 [mV] raw=308 (0x134)
-  L188: ADC Stats: last=311 avg=309 min=304 max=314 range=10 n=32
-  L193: #2 ADC AVG(32) T=24.90 [^C] U=249.01 [mV] raw=309 (0x135)
-  L188: ADC Stats: last=307 avg=309 min=302 max=316 range=14 n=32
-  L193: #3 ADC AVG(32) T=24.90 [^C] U=249.01 [mV] raw=309 (0x135)
-  L188: ADC Stats: last=313 avg=309 min=304 max=316 range=12 n=32
-  L193: #4 ADC AVG(32) T=24.90 [^C] U=249.01 [mV] raw=309 (0x135)
-  ...
-  ```
-  every second (where `Lx` is Line in main.c source, `#x`
-  is simple measurement counter, `T` is temperature
-  in Degrees of Celsius `U` is voltage in `mV`
-- the STM32F7 USART3 is directly connected to ST-LINK Virtual Com port
-  (no extra hardware needed). In my case it has
-  name `STMicroelectronics STLink Virtual COM Port`. Use 115200 Baud, 8-bit,
-  no parity, no flow control
+Additional functions:
 - blinks green LED LD1 at 2s rate (toggle at 1s rate)
 - Red LED LD3 on in case of fatal error
 
-![Nucleo with LM35](assets/nucelo-lm35.jpg)
 
 This project is companion
 for [Measure temperature with PIC16F1579 and LM35 sensor](https://github.com/hpaluch/PIC16F1579-LM35-Temp).
@@ -58,7 +69,7 @@ I like to see how these very different MCUs an their tools compares.
 Required Hardware:
 * [STM NUCLEO-F767ZI][STM NUCLEO-F767ZI] development board with
   STM32-F767ZI Cortex-M7 CPU at 216 MHz.
-* [LM35][LM35] sensors TO-92 package that converts temperature
+* [LM35][LM35] sensor int TO-92 package that converts temperature
   to mili-volts times 10 ( 260 mV = 26.0 Celsius )
 
 Wiring:
@@ -146,7 +157,6 @@ Since then the program should be running:
 - green LED LD1 slowly blinking
 - temperature output on UART every second
 
-
 # Troubleshooting
 
 If your IDE will refuse to build project and reports something like:
@@ -158,6 +168,13 @@ It means that you are using wrong IDE - `SW4STM32` while
 this project is for more recent `STM32CubeIDE`. To fix this
 error download and install STM32CubeIDE
 from https://www.st.com/en/development-tools/stm32cubeide.html
+
+Reliability problem:
+* it happened once that when I connected and disconnected ST-LINK from USB several times the
+  program stopped working - no blinking LED and no output on UART (but also no red LED indicating
+  fatal error)
+* the only remedy was to reprogram CPU again
+* the cause of this problem is unknown
 
 # Resources
 
