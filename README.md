@@ -21,7 +21,7 @@ L193: #4 ADC AVG(32) T=24.90 [^C] U=249.01 [mV] raw=309 (0x135)
 ...
 ```
 
-Printed every second where `Lx` is Line in [Core/Src/main.c][Core/Src/main.c]
+Printed every second where `Lx` is Line in [Core/Src/main.c](Core/Src/main.c)
 source, `#x` is simple measurement counter (increments by 1 on every
 measurement), `T` is temperature in Degrees of Celsius `U` is voltage in `mV`
 
