@@ -176,11 +176,40 @@ Reliability problem:
 * the only remedy was to reprogram CPU again
 * the cause of this problem is unknown
 
+# Notes
+
+Although CPU core runs at 216 MHz the program flash is quite slow.
+From [RM0410][RM0410] page 91, Table 7. Number of wait states according to CPU clock (HCLK) frequency
+
+>  The Program FLASH is capable to handle only up to 30 MHz without wait states at 3.3V
+>  For 216 MHz there are at least 7 Wait states (8 CPU cycles).
+
+You can find used flash latency in `Core/Src/main.c` on this line:
+```c
+if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) != HAL_OK)
+{ /* ... */}
+```
+So here flash latency is set set to 7 Wait-States (8 CPU cycles).
+
+The STM32F7 uses 2 techniques to improve flash access speed:
+* prefetch using 128-bit or 256-bit bus (so several consecutive bytes are fetched 
+  at maximum allowed clock rate)
+* ART accelerator
+
+However they are not guaranteed to help all the time. If there is any time
+critical code the best way is to place it into "Instruction RAM (ITCM-RAM) 16
+Kbytes"
+
+Fortunately this application is not time critical so we have no reason to optimize it.
+Also increasing CPU speed could increase noise and ADC jitter which is not something
+we like.
+
 # Resources
 
 * Please see my [Getting started with ST NUCLEO F767ZI Board][Getting started with ST NUCLEO F767ZI Board]
   for introduction.
 
+[RM0410]: https://www.st.com/resource/en/reference_manual/rm0410-stm32f76xxx-and-stm32f77xxx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf
 [LM35]: https://www.ti.com/lit/ds/symlink/lm35.pdf
 [STM32CubeIDE-Win]: https://www.st.com/en/development-tools/stm32cubeide.html
 [STM32CubeF7]: https://www.st.com/en/embedded-software/stm32cubef7.html
